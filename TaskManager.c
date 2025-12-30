@@ -1,4 +1,14 @@
-﻿#define _CRT_SECURE_NO_WARNINGS
+﻿/*
+* Автор: Маркина Е.А., студентка группы бТИИ-251
+* 
+ * Файл содержит реализацию консольного приложения
+ * "Система управления задачами".
+ * Программа позволяет создавать, хранить, просматривать,
+ * сортировать, искать задачи, а также сохранять и загружать
+ * их из текстовых файлов.
+ */
+
+#define _CRT_SECURE_NO_WARNINGS
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -37,6 +47,12 @@ int show_menu();
 int add_task(Task* tasks, int task_count);
 int load_from_file(Task* tasks, int task_count, int task_capacity);
 
+/*
+ * Функция main является точкой входа в программу.
+ * Управляет главным меню, вызовом операций и памятью.
+ * Входные параметры: отсутствуют.
+ * Возвращаемое значение: 0 - успешное завершение, 1 - ошибка выделения памяти.
+ */
 int main() {
     system("chcp 1251");
 
@@ -58,12 +74,12 @@ int main() {
         choice = show_menu();
 
         switch (choice) {
-        case 1:
+        case 1: /* Показать все задачи */
             result = show_all_tasks(tasks, task_count);
             printf("Отображено задач: %d\n", result);
             break;
 
-        case 2:
+        case 2: /* Добавить задачу */
             if (task_count >= task_capacity) {
                 task_capacity = task_capacity * 2;
                 Task* new_tasks = realloc(tasks, task_capacity * sizeof(Task));
@@ -85,17 +101,17 @@ int main() {
             }
             break;
 
-        case 3:
+        case 3: /* Поиск по статусу */
             result = search_by_status(tasks, task_count);
             printf("\nНайдено задач по статусу: %d\n", result);
             break;
 
-        case 4:
+        case 4: /* Поиск по исполнителю и времени */
             result = search_by_assignee_and_time(tasks, task_count);
             printf("\nНайдено задач по исполнителю и времени: %d\n", result);
             break;
 
-        case 5:
+        case 5: /* Сортировка задач */
             result = sort_tasks(tasks, task_count);
             if (result == 1) {
                 printf("Сортировка выполнена успешно.\n");
@@ -105,14 +121,15 @@ int main() {
             }
             break;
 
-        case 6:
+        case 6: /* Сохранение в файл */
             result = save_to_file(tasks, task_count);
             printf("Сохранено задач в файл: %d\n", result);
             break;
 
-        case 7:
+        case 7: /* Загрузка из файла */
             result = load_from_file(tasks, task_count, task_capacity);
             if (result > task_count) {
+                /* Если загружены новые задачи, обновляем счётчик */
                 printf("Загружено %d задач. Всего теперь: %d\n", result - task_count, result);
                 task_count = result;
             }
@@ -121,11 +138,11 @@ int main() {
             }
             break;
 
-        case 0:
+        case 0: /* Выход из программы */
             printf("Выход из программы...\n");
             break;
 
-        default:
+        default: /* Обработка некорректного ввода */
             printf("Неверный выбор!\n");
         }
 
@@ -143,6 +160,15 @@ int main() {
     return 0;
 }
 
+/*
+ * Функция add_task добавляет новую задачу в массив.
+ * Входные параметры:
+ *   tasks - указатель на массив структур Task.
+ *   task_count - текущее количество задач в массиве (индекс для новой задачи).
+ * Возвращаемое значение:
+ *   1 - задача успешно добавлена.
+ *   0 - ошибка ввода данных или недопустимый индекс.
+ */
 int add_task(Task* tasks, int task_count) {
     if (task_count < 0) {
         return 0;
@@ -154,6 +180,7 @@ int add_task(Task* tasks, int task_count) {
 
     printf("Введите название задачи: ");
     fgets(new_task.name, sizeof(new_task.name), stdin);
+    /* Удаление символа новой строки '\n', который fgets добавляет в буфер */
     new_task.name[strcspn(new_task.name, "\n")] = 0;
 
     new_task.creation_date = time(NULL);
@@ -194,6 +221,15 @@ int add_task(Task* tasks, int task_count) {
     return 1;
 }
 
+/*
+ * Функция show_all_tasks выводит на экран информацию о всех задачах.
+ * Входные параметры:
+ *   tasks - указатель на массив структур Task.
+ *   task_count - количество задач для отображения.
+ * Возвращаемое значение:
+ *   task_count - количество отображённых задач.
+ *   0 - если массив пуст.
+ */
 int show_all_tasks(Task* tasks, int task_count) {
     printf("\n=== Список всех задач ===\n");
 
@@ -207,12 +243,16 @@ int show_all_tasks(Task* tasks, int task_count) {
         printf("Название: %s\n", tasks[i].name);
 
         struct tm* timeinfo = localtime(&tasks[i].creation_date);
+        /* Вывод даты в формате ДД.ММ.ГГГГ.
+           tm_mon отсчитывается от 0, поэтому +1.
+           tm_year - количество лет, прошедших с 1900 года, поэтому +1900. */
         printf("Дата: %02d.%02d.%04d\n",
             timeinfo->tm_mday, timeinfo->tm_mon + 1, timeinfo->tm_year + 1900);
 
         printf("Исполнитель: %s\n", tasks[i].assignee);
 
         printf("Статус: ");
+        /* Преобразование числового кода статуса в текстовую строку */
         switch (tasks[i].status) {
         case NEW: printf("Новая"); break;
         case IN_PROGRESS: printf("В работе"); break;
@@ -221,6 +261,7 @@ int show_all_tasks(Task* tasks, int task_count) {
         }
 
         printf("\nПриоритет: ");
+        /* Преобразование числового кода приоритета в текстовую строку */
         switch (tasks[i].priority) {
         case LOW: printf("Низкий"); break;
         case MEDIUM: printf("Средний"); break;
@@ -235,6 +276,16 @@ int show_all_tasks(Task* tasks, int task_count) {
     return task_count;
 }
 
+/*
+ * Функция save_to_file сохраняет массив задач в текстовый файл.
+ * Формат строки в файле: Название|ДД.ММ.ГГГГ|Исполнитель|СТАТУС|ПРИОРИТЕТ|Оценка|Факт_время
+ * Входные параметры:
+ *   tasks - указатель на массив структур Task.
+ *   task_count - количество задач для сохранения.
+ * Возвращаемое значение:
+ *   task_count - количество сохранённых задач.
+ *   0 - ошибка открытия файла или пустой массив.
+ */
 int save_to_file(Task* tasks, int task_count) {
     printf("\n=== Сохранение в файл ===\n");
 
@@ -258,6 +309,7 @@ int save_to_file(Task* tasks, int task_count) {
         struct tm* timeinfo = localtime(&tasks[i].creation_date);
 
         char status_str[20];
+        /* Конвертация статуса из перечисления в строку для хранения в файле */
         switch (tasks[i].status) {
         case NEW: strcpy(status_str, "NEW"); break;
         case IN_PROGRESS: strcpy(status_str, "IN_PROGRESS"); break;
@@ -266,6 +318,7 @@ int save_to_file(Task* tasks, int task_count) {
         }
 
         char priority_str[20];
+        /* Конвертация приоритета из перечисления в строку для хранения в файле */
         switch (tasks[i].priority) {
         case LOW: strcpy(priority_str, "LOW"); break;
         case MEDIUM: strcpy(priority_str, "MEDIUM"); break;
@@ -289,6 +342,16 @@ int save_to_file(Task* tasks, int task_count) {
     return task_count;
 }
 
+/*
+ * Функция load_from_file загружает задачи из текстового файла в массив.
+ * Входные параметры:
+ *   tasks - указатель на массив структур Task.
+ *   task_count - текущее количество задач в массиве.
+ *   task_capacity - максимальная ёмкость массива (сколько задач можно добавить).
+ * Возвращаемое значение:
+ *   task_count + loaded - новое общее количество задач после загрузки.
+ *   task_count - в случае ошибки открытия файла или если файл пуст/некорректен.
+ */
 int load_from_file(Task* tasks, int task_count, int task_capacity) {
     printf("\n=== Загрузка из файла ===\n");
 
@@ -328,17 +391,18 @@ int load_from_file(Task* tasks, int task_count, int task_capacity) {
             &tasks[index].estimated_hours,
             &tasks[index].actual_hours) == 9) {
 
+            /* Коррекция загруженных значений даты для соответствия структуре tm */
             timeinfo.tm_mon -= 1;
             timeinfo.tm_year -= 1900;
             tasks[index].creation_date = mktime(&timeinfo);
 
-            // Статус
+            /* Обратная конвертация строкового статуса в значение перечисления */
             if (strcmp(status_str, "NEW") == 0) tasks[index].status = NEW;
             else if (strcmp(status_str, "IN_PROGRESS") == 0) tasks[index].status = IN_PROGRESS;
             else if (strcmp(status_str, "COMPLETED") == 0) tasks[index].status = COMPLETED;
             else if (strcmp(status_str, "CANCELLED") == 0) tasks[index].status = CANCELLED;
 
-            // Приоритет
+            /* Обратная конвертация строкового приоритета в значение перечисления */
             if (strcmp(priority_str, "LOW") == 0) tasks[index].priority = LOW;
             else if (strcmp(priority_str, "MEDIUM") == 0) tasks[index].priority = MEDIUM;
             else if (strcmp(priority_str, "HIGH") == 0) tasks[index].priority = HIGH;
@@ -360,6 +424,15 @@ int load_from_file(Task* tasks, int task_count, int task_capacity) {
     }
 }
 
+/*
+ * Функция search_by_status находит и выводит задачи с заданным статусом.
+ * Входные параметры:
+ *   tasks - указатель на массив структур Task.
+ *   task_count - количество задач в массиве.
+ * Возвращаемое значение:
+ *   found_count - количество найденных задач.
+ *   0 - если задачи не найдены или введён неверный статус.
+ */
 int search_by_status(Task* tasks, int task_count) {
     printf("\n=== Поиск задач по статусу ===\n");
 
@@ -374,6 +447,7 @@ int search_by_status(Task* tasks, int task_count) {
     scanf("%d", &status_choice);
     getchar();
 
+    /* Валидация ввода: номер статуса должен быть в диапазоне перечисления */
     if (status_choice < 0 || status_choice > 3) {
         printf("Неверный статус!\n");
         return 0;
@@ -400,6 +474,15 @@ int search_by_status(Task* tasks, int task_count) {
     return found_count;
 }
 
+/*
+ * Функция search_by_assignee_and_time находит задачи по исполнителю
+ * и максимальной оценке времени (оценка <= max_hours).
+ * Входные параметры:
+ *   tasks - указатель на массив структур Task.
+ *   task_count - количество задач в массиве.
+ * Возвращаемое значение:
+ *   found_count - количество найденных задач.
+ */
 int search_by_assignee_and_time(Task* tasks, int task_count) {
     printf("\n=== Поиск по исполнителю и времени ===\n");
 
@@ -442,6 +525,19 @@ int search_by_assignee_and_time(Task* tasks, int task_count) {
     return found_count;
 }
 
+/*
+ * Функция sort_tasks сортирует массив задач по трём критериям (многоуровневая сортировка):
+ * 1. estimated_hours (оценка времени) - по возрастанию.
+ * 2. Если оценки равны: priority (приоритет) - по убыванию (CRITICAL > HIGH > ...).
+ * 3. Если и приоритеты равны: status (статус) - по убыванию (CANCELLED > ... > NEW).
+ * Алгоритм: пузырьковая сортировка (Bubble Sort).
+ * Входные параметры:
+ *   tasks - указатель на массив структур Task.
+ *   task_count - количество задач в массиве.
+ * Возвращаемое значение:
+ *   1 - массив был отсортирован.
+ *   0 - сортировка не требовалась (задач меньше двух).
+ */
 int sort_tasks(Task* tasks, int task_count) {
     printf("\n=== Сортировка задач ===\n");
 
@@ -449,27 +545,29 @@ int sort_tasks(Task* tasks, int task_count) {
         return 0;
     }
 
-    // Пузырьковая сортировка
+    /* Пузырьковая сортировка */
     for (int i = 0; i < task_count - 1; i++) {
         for (int j = 0; j < task_count - i - 1; j++) {
 
-            // По времени
+            /* Уровень 1: Сравнение по полю estimated_hours (по возрастанию) */
             if (tasks[j].estimated_hours > tasks[j + 1].estimated_hours) {
                 Task temp = tasks[j];
                 tasks[j] = tasks[j + 1];
                 tasks[j + 1] = temp;
             }
-            // Если время одинаковое
+            /* Если оценки времени равны, переходим к сравнению приоритетов */
             else if (tasks[j].estimated_hours == tasks[j + 1].estimated_hours) {
-                // По приоритету
+                /* Уровень 2: Сравнение по полю priority (по убыванию).
+                   В перечислении меньшему числу соответствует более высокий приоритет. */
                 if (tasks[j].priority < tasks[j + 1].priority) {
                     Task temp = tasks[j];
                     tasks[j] = tasks[j + 1];
                     tasks[j + 1] = temp;
                 }
-                // Если приоритет одинаковый
+                /* Если и приоритеты равны, переходим к сравнению статусов */
                 else if (tasks[j].priority == tasks[j + 1].priority) {
-                    // По статусу
+                    /* Уровень 3: Сравнение по полю status (по убыванию).
+                       В перечислении большему числу соответствует более "завершённый" статус. */
                     if (tasks[j].status > tasks[j + 1].status) {
                         Task temp = tasks[j];
                         tasks[j] = tasks[j + 1];
@@ -483,6 +581,12 @@ int sort_tasks(Task* tasks, int task_count) {
     return 1;
 }
 
+/*
+ * Функция show_menu отображает главное текстовое меню программы.
+ * Входные параметры: отсутствуют.
+ * Возвращаемое значение:
+ *   choice - целое число, соответствующее выбранному пользователем пункту меню.
+ */
 int show_menu() {
     printf("\n================================\n");
     printf("   СИСТЕМА УПРАВЛЕНИЯ ЗАДАЧАМИ   \n");
