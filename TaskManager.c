@@ -28,19 +28,14 @@ typedef struct {
     int actual_hours;
 } Task;
 
-Task* init_tasks_array(int* task_count, int* task_capacity, int initial_size);
-int add_task_to_array(Task** tasks, int* task_count, int* task_capacity, Task new_task);
-int free_tasks_array(Task* tasks, int* task_count, int* task_capacity);
-Task* generate_test_data(Task* old_tasks, int* task_count, int* task_capacity, int n);
-
-int add_task(Task** tasks, int* task_count, int* task_capacity);
 int show_all_tasks(Task* tasks, int task_count);
 int save_to_file(Task* tasks, int task_count);
-Task* load_from_file(Task* old_tasks, int* task_count, int* task_capacity);
 int search_by_status(Task* tasks, int task_count);
 int search_by_assignee_and_time(Task* tasks, int task_count);
 int sort_tasks(Task* tasks, int task_count);
 int show_menu();
+int add_task(Task* tasks, int task_count);
+int load_from_file(Task* tasks, int task_count, int task_capacity);
 
 int main() {
     system("chcp 1251");
@@ -48,9 +43,12 @@ int main() {
     Task* tasks = NULL;
     int task_count = 0;
     int task_capacity = 0;
+    int result;
 
-    tasks = init_tasks_array(&task_count, &task_capacity, 10);
+    task_capacity = 50;
+    tasks = malloc(task_capacity * sizeof(Task));
     if (tasks == NULL) {
+        printf("Ошибка выделения памяти!\n");
         return 1;
     }
 
@@ -61,50 +59,111 @@ int main() {
 
         switch (choice) {
         case 1:
-            show_all_tasks(tasks, task_count);
+            result = show_all_tasks(tasks, task_count);
+            printf("Отображено задач: %d\n", result);
             break;
 
         case 2:
-            add_task(&tasks, &task_count, &task_capacity);
-            break;
+            if (task_count >= task_capacity) {
+                task_capacity = task_capacity * 2;
+                Task* new_tasks = realloc(tasks, task_capacity * sizeof(Task));
+                if (new_tasks == NULL) {
+                    printf("Ошибка выделения памяти!\n");
+                    task_capacity = task_capacity / 2;
+                    break;
+                }
+                tasks = new_tasks;
+                printf("Массив увеличен до %d задач\n", task_capacity);
+            }
 
-        case 3:
-            search_by_status(tasks, task_count);
-            break;
-
-        case 4:
-            search_by_assignee_and_time(tasks, task_count);
-            break;
-
-        case 5:
-            sort_tasks(tasks, task_count);
-            break;
-
-        case 6:
-            save_to_file(tasks, task_count);
-            break;
-
-        case 7:
-            tasks = load_from_file(tasks, &task_count, &task_capacity);
-            if (tasks == NULL) {
-                tasks = init_tasks_array(&task_count, &task_capacity, 10);
+            result = add_task(tasks, task_count);
+            if (result == 1) {
+                task_count++;
+                printf("Задача добавлена в массив! Всего задач: %d\n", task_count);
+            }
+            else {
+                printf("Ошибка при добавлении задачи!\n");
             }
             break;
 
-        case 9:
+        case 3:
+            result = search_by_status(tasks, task_count);
+            printf("Найдено задач по статусу: %d\n", result);
+            break;
+
+        case 4:
+            result = search_by_assignee_and_time(tasks, task_count);
+            printf("Найдено задач по исполнителю и времени: %d\n", result);
+            break;
+
+        case 5:
+            result = sort_tasks(tasks, task_count);
+            if (result == 1) {
+                printf("Сортировка выполнена успешно.\n");
+            }
+            else {
+                printf("Сортировка не выполнена.\n");
+            }
+            break;
+
+        case 6:
+            result = save_to_file(tasks, task_count);
+            printf("Сохранено задач в файл: %d\n", result);
+            break;
+
+        case 7:
+            result = load_from_file(tasks, task_count, task_capacity);
+            if (result > task_count) {
+                printf("Загружено %d задач. Всего теперь: %d\n", result - task_count, result);
+                task_count = result;
+            }
+            else {
+                printf("Загружено задач: %d\n", result - task_count);
+            }
+            break;
+
+        case 8:
         {
             int n;
             printf("Сколько задач сгенерировать? ");
             scanf("%d", &n);
             getchar();
 
-            tasks = generate_test_data(tasks, &task_count, &task_capacity, n);
-            if (tasks != NULL) {
-                printf("Успешно сгенерировано %d задач\n", task_count);
+            srand(time(NULL));
+            const char* names[] = { "приложение", "отчет", "сайт", "базу", "тест", "код", "документ", "модуль" };
+            const char* verbs[] = { "Разработать", "Создать", "Написать", "Протестировать", "Обновить", "Исправить" };
+            const char* people_name[] = { "Иван", "Петр", "Анна", "Мария", "Алексей", "Елена" };
+            const char* people_surname[] = { "Галич", "Короленко", "Шастун", "Евтушенко", "Долгих", "Ткач" };
+
+            if (task_count + n > task_capacity) {
+                task_capacity = task_count + n;
+                Task* new_tasks = realloc(tasks, task_capacity * sizeof(Task));
+                if (new_tasks == NULL) {
+                    printf("Ошибка выделения памяти!\n");
+                    break;
+                }
+                tasks = new_tasks;
             }
-            else {
-                printf("Ошибка генерации!\n");
+
+            for (int i = 0; i < n; i++) {
+                sprintf(tasks[task_count].name, "%s %s",
+                    verbs[rand() % 6],
+                    names[rand() % 8]);
+
+                tasks[task_count].creation_date = time(NULL) - (rand() % 30 * 86400);
+
+                sprintf(tasks[task_count].assignee, "%s %s",
+                    people_surname[rand() % 6],
+                    people_name[rand() % 6]);
+
+                tasks[task_count].status = rand() % 4;
+                tasks[task_count].priority = rand() % 4;
+                tasks[task_count].estimated_hours = 1 + rand() % 10;
+                tasks[task_count].actual_hours = 1 + rand() % 10;
+
+                task_count++;
             }
+            printf("Сгенерировано %d задач. Всего теперь: %d\n", n, task_count);
             break;
         }
 
@@ -123,107 +182,22 @@ int main() {
 
     } while (choice != 0);
 
-    free_tasks_array(tasks, &task_count, &task_capacity);
-
-    return 0;
-}
-
-Task* generate_test_data(Task* old_tasks, int* task_count, int* task_capacity, int n) {
-    srand(time(NULL));
-    const char* names[] = { "приложение", "отчет", "сайт", "базу", "тест", "код", "документ", "модуль" };
-    const char* verbs[] = { "Разработать", "Создать", "Написать", "Протестировать", "Обновить", "Исправить" };
-    const char* people_name[] = { "Иван", "Петр", "Анна", "Мария", "Алексей", "Елена" };
-    const char* people_surname[] = { "Галич", "Короленко", "Шастун", "Евтушенко", "Долгих", "Ткач" };
-
-    if (old_tasks != NULL) {
-        free(old_tasks);
-    }
-
-    Task* tasks = init_tasks_array(task_count, task_capacity, n);
-    if (tasks == NULL) {
-        return NULL;
-    }
-
-    int generated = 0;
-    for (int i = 0; i < n; i++) {
-        Task task;
-
-        sprintf(task.name, "%s %s",
-            verbs[rand() % 6],
-            names[rand() % 8]);
-
-        task.creation_date = time(NULL) - (rand() % 30 * 86400);
-
-        sprintf(task.assignee, "%s %s",
-            people_surname[rand() % 6],
-            people_name[rand() % 6]);
-
-        task.status = rand() % 4;
-        task.priority = rand() % 4;
-        task.estimated_hours = 1 + rand() % 10;
-        task.actual_hours = 1 + rand() % 10;
-
-        add_task_to_array(&tasks, task_count, task_capacity, task);
-        generated++;
-    }
-
-    return tasks;
-}
-
-Task* init_tasks_array(int* task_count, int* task_capacity, int initial_size) {
-    Task* tasks = (Task*)malloc(initial_size * sizeof(Task));
-    if (tasks == NULL) {
-        printf("Ошибка выделения памяти!\n");
-        return NULL;
-    }
-
-    *task_count = 0;
-    *task_capacity = initial_size;
-
-    return tasks;
-}
-
-int free_tasks_array(Task* tasks, int* task_count, int* task_capacity) {
     if (tasks != NULL) {
         free(tasks);
-        *task_count = 0;
-        *task_capacity = 0;
         printf("Память освобождена\n");
-        return 1;
     }
+
     return 0;
 }
 
-
-int add_task_to_array(Task** tasks, int* task_count, int* task_capacity, Task new_task) {
-
-    if (*task_count >= *task_capacity) {
-        int new_capacity = (*task_capacity) * 2;
-        if (new_capacity == 0) new_capacity = 10;
-
-        Task* new_tasks = (Task*)realloc(*tasks, new_capacity * sizeof(Task));
-        if (new_tasks == NULL) {
-            printf("Ошибка перевыделения памяти!\n");
-            return *task_count;
-        }
-
-        *tasks = new_tasks;
-        *task_capacity = new_capacity;
-        printf("Массив увеличен до %d задач\n", new_capacity);
+int add_task(Task* tasks, int task_count) {
+    if (task_count < 0) {
+        return 0;
     }
 
-
-    (*tasks)[*task_count] = new_task;
-    (*task_count)++;
-
-    return *task_count;
-}
-
-
-int add_task(Task** tasks, int* task_count, int* task_capacity) {
-    printf("\n=== Добавление новой задачи ===\n");
-
     Task new_task;
+
+    printf("\n=== Добавление новой задачи ===\n");
 
     printf("Введите название задачи: ");
     fgets(new_task.name, sizeof(new_task.name), stdin);
@@ -252,14 +226,20 @@ int add_task(Task** tasks, int* task_count, int* task_capacity) {
     scanf("%d", &new_task.actual_hours);
     getchar();
 
-
-    int result = add_task_to_array(tasks, task_count, task_capacity, new_task);
-
-    if (result > 0) {
-        printf("Задача успешно добавлена! Всего задач: %d\n\n", *task_count);
-        return 1;
+    if (strlen(new_task.name) == 0) {
+        printf("Ошибка: название задачи не может быть пустым!\n");
+        return 0;
     }
-    return 0;
+
+    if (new_task.estimated_hours <= 0) {
+        printf("Ошибка: оценка времени должна быть положительной!\n");
+        return 0;
+    }
+
+    tasks[task_count] = new_task;
+
+    printf("\nЗадача '%s' успешно создана!\n", new_task.name);
+    return 1;
 }
 
 int show_all_tasks(Task* tasks, int task_count) {
@@ -306,6 +286,11 @@ int show_all_tasks(Task* tasks, int task_count) {
 int save_to_file(Task* tasks, int task_count) {
     printf("\n=== Сохранение в файл ===\n");
 
+    if (task_count == 0) {
+        printf("Нет задач для сохранения.\n");
+        return 0;
+    }
+
     char filename[100];
     printf("Введите имя файла: ");
     scanf("%s", filename);
@@ -317,11 +302,9 @@ int save_to_file(Task* tasks, int task_count) {
         return 0;
     }
 
-    int saved = 0;
     for (int i = 0; i < task_count; i++) {
         struct tm* timeinfo = localtime(&tasks[i].creation_date);
 
-        // Статус в текст
         char status_str[20];
         switch (tasks[i].status) {
         case NEW: strcpy(status_str, "NEW"); break;
@@ -330,7 +313,6 @@ int save_to_file(Task* tasks, int task_count) {
         case CANCELLED: strcpy(status_str, "CANCELLED"); break;
         }
 
-        // Приоритет в текст
         char priority_str[20];
         switch (tasks[i].priority) {
         case LOW: strcpy(priority_str, "LOW"); break;
@@ -349,17 +331,14 @@ int save_to_file(Task* tasks, int task_count) {
             priority_str,
             tasks[i].estimated_hours,
             tasks[i].actual_hours);
-
-        saved++;
     }
 
     fclose(file);
-    printf("Сохранено %d задач в файл '%s'\n", saved, filename);
-    return saved;
+    printf("Сохранено %d задач в файл '%s'\n", task_count, filename);
+    return task_count;
 }
 
-
-Task* load_from_file(Task* old_tasks, int* task_count, int* task_capacity) {
+int load_from_file(Task* tasks, int task_count, int task_capacity) {
     printf("\n=== Загрузка из файла ===\n");
 
     char filename[100];
@@ -370,69 +349,65 @@ Task* load_from_file(Task* old_tasks, int* task_count, int* task_capacity) {
     FILE* file = fopen(filename, "r");
     if (file == NULL) {
         printf("Ошибка открытия файла!\n");
-        return old_tasks;
+        return task_count;  // Возвращаем текущее количество
     }
 
-    if (old_tasks != NULL) {
-        free(old_tasks);
-    }
-
-    Task* tasks = init_tasks_array(task_count, task_capacity, 10);
-    if (tasks == NULL) {
-        fclose(file);
-        return NULL;
-    }
-
-    char line[256];
     int loaded = 0;
+    char line[256];
+    int current_index = task_count;  // Начинаем добавлять после существующих задач
 
     while (fgets(line, sizeof(line), file) != NULL) {
-        Task task;
+        if (current_index >= task_capacity) {
+            printf("Достигнут максимальный размер массива. Загружено %d задач.\n", loaded);
+            break;
+        }
+
         struct tm timeinfo = { 0 };
         char status_str[20], priority_str[20];
+        int index = current_index;  // Используем текущий индекс
 
         if (sscanf(line, "%[^|]|%d.%d.%d|%[^|]|%[^|]|%[^|]|%d|%d",
-            task.name,
+            tasks[index].name,
             &timeinfo.tm_mday,
             &timeinfo.tm_mon,
             &timeinfo.tm_year,
-            task.assignee,
+            tasks[index].assignee,
             status_str,
             priority_str,
-            &task.estimated_hours,
-            &task.actual_hours) == 9) {
+            &tasks[index].estimated_hours,
+            &tasks[index].actual_hours) == 9) {
 
             timeinfo.tm_mon -= 1;
             timeinfo.tm_year -= 1900;
-            task.creation_date = mktime(&timeinfo);
+            tasks[index].creation_date = mktime(&timeinfo);
 
             // Статус
-            if (strcmp(status_str, "NEW") == 0) task.status = NEW;
-            else if (strcmp(status_str, "IN_PROGRESS") == 0) task.status = IN_PROGRESS;
-            else if (strcmp(status_str, "COMPLETED") == 0) task.status = COMPLETED;
-            else if (strcmp(status_str, "CANCELLED") == 0) task.status = CANCELLED;
+            if (strcmp(status_str, "NEW") == 0) tasks[index].status = NEW;
+            else if (strcmp(status_str, "IN_PROGRESS") == 0) tasks[index].status = IN_PROGRESS;
+            else if (strcmp(status_str, "COMPLETED") == 0) tasks[index].status = COMPLETED;
+            else if (strcmp(status_str, "CANCELLED") == 0) tasks[index].status = CANCELLED;
 
             // Приоритет
-            if (strcmp(priority_str, "LOW") == 0) task.priority = LOW;
-            else if (strcmp(priority_str, "MEDIUM") == 0) task.priority = MEDIUM;
-            else if (strcmp(priority_str, "HIGH") == 0) task.priority = HIGH;
-            else if (strcmp(priority_str, "CRITICAL") == 0) task.priority = CRITICAL;
+            if (strcmp(priority_str, "LOW") == 0) tasks[index].priority = LOW;
+            else if (strcmp(priority_str, "MEDIUM") == 0) tasks[index].priority = MEDIUM;
+            else if (strcmp(priority_str, "HIGH") == 0) tasks[index].priority = HIGH;
+            else if (strcmp(priority_str, "CRITICAL") == 0) tasks[index].priority = CRITICAL;
 
-            add_task_to_array(&tasks, task_count, task_capacity, task);
             loaded++;
+            current_index++;
         }
     }
 
     fclose(file);
 
-    if (loaded == 0) {
-        free(tasks);
-        printf("Файл пуст или имеет неверный формат\n");
-        return NULL;
+    if (loaded > 0) {
+        printf("Загружено %d задач из файла '%s'\n", loaded, filename);
+        return task_count + loaded;  // Возвращаем общее количество
     }
-
-    printf("Загружено %d задач из файла '%s'\n", loaded, filename);
-    return tasks;
+    else {
+        printf("Файл пуст или имеет неверный формат\n");
+        return task_count;  // Возвращаем исходное количество
+    }
 }
 
 int search_by_status(Task* tasks, int task_count) {
@@ -454,44 +429,26 @@ int search_by_status(Task* tasks, int task_count) {
         return 0;
     }
 
-    Status search_status = (Status)status_choice;
     int found_count = 0;
 
-    printf("\nЗадачи со статусом '");
-    switch (search_status) {
-    case NEW: printf("Новая"); break;
-    case IN_PROGRESS: printf("В работе"); break;
-    case COMPLETED: printf("Завершена"); break;
-    case CANCELLED: printf("Отменена"); break;
-    }
-    printf("':\n");
+    printf("\nРезультаты поиска:\n");
 
     for (int i = 0; i < task_count; i++) {
-        if (tasks[i].status == search_status) {
+        if (tasks[i].status == status_choice) {
             found_count++;
             printf("\n--- Задача #%d ---\n", found_count);
             printf("Название: %s\n", tasks[i].name);
-
-            struct tm* timeinfo = localtime(&tasks[i].creation_date);
-            printf("Дата: %02d.%02d.%04d\n",
-                timeinfo->tm_mday, timeinfo->tm_mon + 1, timeinfo->tm_year + 1900);
-
             printf("Исполнитель: %s\n", tasks[i].assignee);
             printf("Оценка времени: %d часов\n", tasks[i].estimated_hours);
-            printf("Фактическое время: %d часов\n", tasks[i].actual_hours);
         }
     }
 
     if (found_count == 0) {
-        printf("Задачи с указанным статусом не найдены.\n");
-    }
-    else {
-        printf("\nНайдено задач: %d\n", found_count);
+        printf("Задачи не найдены.\n");
     }
 
     return found_count;
 }
-
 
 int search_by_assignee_and_time(Task* tasks, int task_count) {
     printf("\n=== Поиск по исполнителю и времени ===\n");
@@ -502,13 +459,13 @@ int search_by_assignee_and_time(Task* tasks, int task_count) {
     assignee[strcspn(assignee, "\n")] = 0;
 
     int max_hours;
-    printf("Введите максимальное время выполнения (часов): ");
+    printf("Введите максимальное время (часов): ");
     scanf("%d", &max_hours);
     getchar();
 
     int found_count = 0;
 
-    printf("\nЗадачи исполнителя '%s' со сроком до %d часов:\n", assignee, max_hours);
+    printf("\nРезультаты поиска:\n");
 
     for (int i = 0; i < task_count; i++) {
         if (strcmp(tasks[i].assignee, assignee) == 0 &&
@@ -517,11 +474,6 @@ int search_by_assignee_and_time(Task* tasks, int task_count) {
             found_count++;
             printf("\n--- Задача #%d ---\n", found_count);
             printf("Название: %s\n", tasks[i].name);
-
-            struct tm* timeinfo = localtime(&tasks[i].creation_date);
-            printf("Дата: %02d.%02d.%04d\n",
-                timeinfo->tm_mday, timeinfo->tm_mon + 1, timeinfo->tm_year + 1900);
-
             printf("Статус: ");
             switch (tasks[i].status) {
             case NEW: printf("Новая"); break;
@@ -529,58 +481,46 @@ int search_by_assignee_and_time(Task* tasks, int task_count) {
             case COMPLETED: printf("Завершена"); break;
             case CANCELLED: printf("Отменена"); break;
             }
-
-            printf("\nПриоритет: ");
-            switch (tasks[i].priority) {
-            case LOW: printf("Низкий"); break;
-            case MEDIUM: printf("Средний"); break;
-            case HIGH: printf("Высокий"); break;
-            case CRITICAL: printf("Критический"); break;
-            }
-
             printf("\nОценка времени: %d часов\n", tasks[i].estimated_hours);
-            printf("Фактическое время: %d часов\n", tasks[i].actual_hours);
         }
     }
 
     if (found_count == 0) {
         printf("Задачи не найдены.\n");
     }
-    else {
-        printf("\nНайдено задач: %d\n", found_count);
-    }
 
     return found_count;
 }
 
-
 int sort_tasks(Task* tasks, int task_count) {
-    printf("\n=== Многоуровневая сортировка ===\n");
+    printf("\n=== Сортировка задач ===\n");
 
     if (task_count < 2) {
         printf("Сортировка не требуется\n");
         return 0;
     }
 
-    printf("Сортируем по: время → приоритет → статус\n");
-
-    // пузырьковая сортировка
+    // Пузырьковая сортировка
     for (int i = 0; i < task_count - 1; i++) {
         for (int j = 0; j < task_count - i - 1; j++) {
 
+            // По времени
             if (tasks[j].estimated_hours > tasks[j + 1].estimated_hours) {
                 Task temp = tasks[j];
                 tasks[j] = tasks[j + 1];
                 tasks[j + 1] = temp;
             }
-
+            // Если время одинаковое
             else if (tasks[j].estimated_hours == tasks[j + 1].estimated_hours) {
+                // По приоритету
                 if (tasks[j].priority < tasks[j + 1].priority) {
                     Task temp = tasks[j];
                     tasks[j] = tasks[j + 1];
                     tasks[j + 1] = temp;
                 }
+                // Если приоритет одинаковый
                 else if (tasks[j].priority == tasks[j + 1].priority) {
+                    // По статусу
                     if (tasks[j].status > tasks[j + 1].status) {
                         Task temp = tasks[j];
                         tasks[j] = tasks[j + 1];
@@ -590,10 +530,10 @@ int sort_tasks(Task* tasks, int task_count) {
             }
         }
     }
+
     printf("Сортировка завершена!\n");
     return 1;
 }
-
 
 int show_menu() {
     printf("\n================================\n");
@@ -615,4 +555,3 @@ int show_menu() {
     getchar();
     return choice;
 }
-
