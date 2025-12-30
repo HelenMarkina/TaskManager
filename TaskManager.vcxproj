@@ -126,6 +126,7 @@
     <ClCompile Include="TaskManager.c" />
   </ItemGroup>
   <ItemGroup>
+    <Text Include="tasks.txt" />
     <Text Include="test.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -45,7 +45,7 @@ int main() {
     int task_capacity = 0;
     int result;
 
-    task_capacity = 50;
+    task_capacity = 10;
     tasks = malloc(task_capacity * sizeof(Task));
     if (tasks == NULL) {
         printf("Ошибка выделения памяти!\n");
@@ -73,13 +73,12 @@ int main() {
                     break;
                 }
                 tasks = new_tasks;
-                printf("Массив увеличен до %d задач\n", task_capacity);
             }
 
             result = add_task(tasks, task_count);
             if (result == 1) {
                 task_count++;
-                printf("Задача добавлена в массив! Всего задач: %d\n", task_count);
+                printf("\nЗадача успешно создана! Всего задач: %d\n", task_count);
             }
             else {
                 printf("Ошибка при добавлении задачи!\n");
@@ -88,12 +87,12 @@ int main() {
 
         case 3:
             result = search_by_status(tasks, task_count);
-            printf("Найдено задач по статусу: %d\n", result);
+            printf("\nНайдено задач по статусу: %d\n", result);
             break;
 
         case 4:
             result = search_by_assignee_and_time(tasks, task_count);
-            printf("Найдено задач по исполнителю и времени: %d\n", result);
+            printf("\nНайдено задач по исполнителю и времени: %d\n", result);
             break;
 
         case 5:
@@ -102,7 +101,7 @@ int main() {
                 printf("Сортировка выполнена успешно.\n");
             }
             else {
-                printf("Сортировка не выполнена.\n");
+                printf("Сортировка не требуется\n");
             }
             break;
 
@@ -122,51 +121,6 @@ int main() {
             }
             break;
 
-        case 8:
-        {
-            int n;
-            printf("Сколько задач сгенерировать? ");
-            scanf("%d", &n);
-            getchar();
-
-            srand(time(NULL));
-            const char* names[] = { "приложение", "отчет", "сайт", "базу", "тест", "код", "документ", "модуль" };
-            const char* verbs[] = { "Разработать", "Создать", "Написать", "Протестировать", "Обновить", "Исправить" };
-            const char* people_name[] = { "Иван", "Петр", "Анна", "Мария", "Алексей", "Елена" };
-            const char* people_surname[] = { "Галич", "Короленко", "Шастун", "Евтушенко", "Долгих", "Ткач" };
-
-            if (task_count + n > task_capacity) {
-                task_capacity = task_count + n;
-                Task* new_tasks = realloc(tasks, task_capacity * sizeof(Task));
-                if (new_tasks == NULL) {
-                    printf("Ошибка выделения памяти!\n");
-                    break;
-                }
-                tasks = new_tasks;
-            }
-
-            for (int i = 0; i < n; i++) {
-                sprintf(tasks[task_count].name, "%s %s",
-                    verbs[rand() % 6],
-                    names[rand() % 8]);
-
-                tasks[task_count].creation_date = time(NULL) - (rand() % 30 * 86400);
-
-                sprintf(tasks[task_count].assignee, "%s %s",
-                    people_surname[rand() % 6],
-                    people_name[rand() % 6]);
-
-                tasks[task_count].status = rand() % 4;
-                tasks[task_count].priority = rand() % 4;
-                tasks[task_count].estimated_hours = 1 + rand() % 10;
-                tasks[task_count].actual_hours = 1 + rand() % 10;
-
-                task_count++;
-            }
-            printf("Сгенерировано %d задач. Всего теперь: %d\n", n, task_count);
-            break;
-        }
-
         case 0:
             printf("Выход из программы...\n");
             break;
@@ -184,7 +138,6 @@ int main() {
 
     if (tasks != NULL) {
         free(tasks);
-        printf("Память освобождена\n");
     }
 
     return 0;
@@ -238,7 +191,6 @@ int add_task(Task* tasks, int task_count) {
 
     tasks[task_count] = new_task;
 
-    printf("\nЗадача '%s' успешно создана!\n", new_task.name);
     return 1;
 }
 
@@ -334,7 +286,6 @@ int save_to_file(Task* tasks, int task_count) {
     }
 
     fclose(file);
-    printf("Сохранено %d задач в файл '%s'\n", task_count, filename);
     return task_count;
 }
 
@@ -401,7 +352,6 @@ int load_from_file(Task* tasks, int task_count, int task_capacity) {
     fclose(file);
 
     if (loaded > 0) {
-        printf("Загружено %d задач из файла '%s'\n", loaded, filename);
         return task_count + loaded;  // Возвращаем общее количество
     }
     else {
@@ -496,7 +446,6 @@ int sort_tasks(Task* tasks, int task_count) {
     printf("\n=== Сортировка задач ===\n");
 
     if (task_count < 2) {
-        printf("Сортировка не требуется\n");
         return 0;
     }
 
@@ -531,7 +480,6 @@ int sort_tasks(Task* tasks, int task_count) {
         }
     }
 
-    printf("Сортировка завершена!\n");
     return 1;
 }
 
